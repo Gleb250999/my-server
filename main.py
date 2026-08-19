@@ -1,15 +1,13 @@
 import asyncio
+import os
 import sqlite3
 import aiohttp
-import nest_asyncio
 from aiogram import Bot, Dispatcher, F, types
 from aiogram.filters import Command
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
-nest_asyncio.apply()
-
-# ⚠️ Вкажи свій токен бота від @BotFather
-BOT_TOKEN = "8521645193:AAEzg-qS9O3nuK-ZLVrHXlTfkaWlVbgktUQ"
+# 🔑 Отримуємо токен зі змінних оточення (Variables в Railway)
+BOT_TOKEN = os.getenv("8521645193:AAEzg-qS9O3nuK-ZLVrHXlTfkaWlVbgktUQ")
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
@@ -76,7 +74,7 @@ NEIGHBORS = {
     "АР Крим": ["Херсонська область"]
 }
 
-# --- БД ---
+# --- БАЗА ДАНИХ ---
 def init_db():
     conn = sqlite3.connect("users.db")
     cursor = conn.cursor()
@@ -136,7 +134,7 @@ def get_cities_keyboard(region_idx: int):
     buttons.append([InlineKeyboardButton(text="⬅️ Назад до областей", callback_data="back_to_regions")])
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
-# --- ХЕНДЛЕРИ ---
+# --- ХЕНДЛЕРИ КОМАНД ТА КНОПОК ---
 @dp.message(Command("start"))
 async def start_handler(message: types.Message):
     await message.answer(
@@ -254,7 +252,6 @@ async def check_alerts_loop():
                                 # ⚠️ ПОПЕРЕДЖЕННЯ ДЛЯ СУСІДНІХ ОБЛАСТЕЙ
                                 neighbor_regions = NEIGHBORS.get(region_name, [])
                                 for n_region in neighbor_regions:
-                                    # Якщо в сусідньому регіоні зараз НЕМАЄ своєї тривоги — попереджаємо його
                                     if not current_api_status.get(n_region, False):
                                         warn_text = (
                                             f"⚠️ **УВАГА! ТРИВОГА В СУСІДНІЙ ОБЛАСТІ!**\n\n"
@@ -286,11 +283,12 @@ async def check_alerts_loop():
 
         await asyncio.sleep(10)
 
-# --- ЗАПУСК ---
+# --- ЗАПУСК ДЛЯ СЕРВЕРА ---
 async def main():
     init_db()
     asyncio.create_task(check_alerts_loop())
     print("🚀 Бот запущен!")
     await dp.start_polling(bot)
 
-await main()
+if __name__ == "__main__":
+    asyncio.run(main())
